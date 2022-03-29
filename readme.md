@@ -36,12 +36,14 @@ SSB uses a number of open source projects to work properly:
 SSB requires [Python 3.7+](https://www.python.org/), [Node.js](https://nodejs.org/en/download/) and a MongoDB database (local or hosted)
 
 Install the dependencies and start the server. Ensure you have MongoDB Compass running, or change the DB connection variable in server.py to match your host
+You'll need to create your own Electron app, as the node_modules were too large to upload to github
 
 ```sh
 cd SSB
 pip install -r requirements.txt
 python server.py
 ```
+Create an ElectronJS app, and drop/overwrite the files found in Electron Client
 Run the Electron app via shell:
 ```sh
 cd ElectronClient
