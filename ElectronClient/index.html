@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, inital-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="scripts.js" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@500&display=swap" rel="stylesheet">
+
+</head>
+<body>
+    <div class="container">
+        <!-- Login form -->
+        <div class="form" id="login">
+            <h1 class="form__title">Login</h1>
+            <div class="form__message"></div>
+            <form id="-login">
+                <div class="form__input-group">
+                    <input type="text" class="form__input" id="login-email" autofocus placeholder="Email">
+                </div>
+                <div class="form__input-group">
+                    <input type="password" class="form__input" id="login-password" autofocus placeholder="Password">
+                </div>
+                <button class="form__button login-btn" type="submit">Login</button>
+                <p class="form__text">
+                    <a href="#" class="form__link form--hidden">Forgot Password?</a>
+                </p>
+                <p class="form__text">
+                    <a href="#" class="form__link" id="linkCreateAccount">Register new account</a>
+                </p>
+            </form>
+        </div>
+
+        <!-- Register Form -->
+        <div  class="form form--hidden" id="createAccount">
+            <h1 class="form__title">Create an account</h1>
+            <div class="form__message register-error form__message--error"></div>
+            
+            <form id="signup">
+                <div class="form__input-group">
+                    <input type="text" class="form__input email" id="email" autofocus placeholder="Email Address">
+                </div>
+                <div class="form__input-group">
+                    <input type="password" class="form__input password" id="password" autofocus placeholder="Password">
+                </div>
+                <div class="form__input-group">
+                    <input type="password" class="form__input" id="confirm-password" autofocus placeholder="Confirm password">
+                </div>
+                <button class="form__button register-btn" type="submit">Register</button>
+                <p class="form__text">
+                    <a href="#" class="form__link" id="linkLogin">Already have an account? Sign in</a>
+                </p>
+            </form>
+        </div>
+            <!-- Websocket container -->
+        <div  class="form form--hidden" id="ws-container">
+            <h2 class="form__title">Websocket Console</h2>
+            <div class="form__message register-error form__message--error"></div>
+                <div id="ws-table-container" class="scroll_enabled">
+                    <!-- <table id="ws-table">
+                    </table> -->
+                </div>
+                <a class="form__link" id="client-id"></a>
+
+        </div>
+
+</body>
+</html>

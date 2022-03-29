@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link href="{{ url_for('static', path='/app.css') }}" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="{{ url_for('static', path='/scripts.js') }}" defer></script>
+  </head>
+  <body>
+    <div id="client_id">{{ id }}</div>
+    <section id="control-center">
+
+      {% for i in range(sound_files|length) %}
+      <button class="button" id="{{ sound_files[i] }}">
+        {{ sound_files[i] }}
+      </button>
+      {% endfor %}
+
+    </section>
+    <form">
+      <button class="stopBtn" id="stopBtn">
+        Stop All Sounds
+      </button>
+    </form>
+  </body>
+</html>
