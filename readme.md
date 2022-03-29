@@ -43,7 +43,7 @@ cd SSB
 pip install -r requirements.txt
 python server.py
 ```
-Create an ElectronJS app, and drop/overwrite the files found in Electron Client
+Create an ElectronJS app, and drop/overwrite the files found in Electron Client.
 Run the Electron app via shell:
 ```sh
 cd ElectronClient
