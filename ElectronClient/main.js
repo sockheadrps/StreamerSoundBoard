@@ -1,8 +1,5 @@
 const { BrowserWindow, app, contextBridge } = require("electron")
 
-
-
-
 let win = null;
 
 const createWindow = () => {
