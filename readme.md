@@ -21,7 +21,7 @@ SSB uses a number of open source projects to work properly:
 
 - [FastAPI](https://fastapi.tiangolo.com/) - The new Python backend hotness
 - [ElectronJS](https://www.electronjs.org/) - Application framework for creating local web app-like applications, easy to package and run!
-- [MongoDB](https://www.mongodb.com/) - Fast, NOSQL document databa
+- [MongoDB](https://www.mongodb.com/) - Fast, NOSQL document database
 - Vanilla Javascript - No need for complex bloated JS frameworks
 - HTML - You cant have a chromium app without it!
 - CSS - No need for preprocessors when you write it oldschool
