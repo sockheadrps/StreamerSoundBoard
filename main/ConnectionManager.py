@@ -11,4 +11,5 @@ class ConnectionManager:
         self.connections.append(web_socket)
 
     async def disconnect_user(self, web_socket: WebSocket):
-        self.connections.remove(web_socket)
+        if web_socket in self.connections:
+            self.connections.remove(web_socket)

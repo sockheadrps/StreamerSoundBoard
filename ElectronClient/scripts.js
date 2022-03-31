@@ -23,7 +23,7 @@ function startWebsocketConnection(){
         
         // Send sound files present in the sound_files folder
         var pElem = document.createElement('p')
-        socket.send(JSON.stringify({"SOUNDFILES": window.api.soundFiles}));
+        socket.send(JSON.stringify({"SOUND_FILES": window.api.soundFiles}));
         pElem.innerHTML = "SOUNDFILES: Sent"
         pElem.classList.add('ws-msg-send')
         table.appendChild(pElem)
@@ -45,11 +45,15 @@ function startWebsocketConnection(){
         // On message add to the ws-table-container
         let data = JSON.parse(event.data);
         var pElem = document.createElement('p')
-        pElem.innerHTML = `${Object.keys(data)} ${Object.values(data)}`
+        var out = '';
+        for (var p in data) {
+            out += p + ': ' + data[p] + '\n';
+        }
+        pElem.innerHTML = `${out}`
         pElem.classList.add('ws-msg')
 
         // Edit the client id div to reflect the client URL
-        if (Object.keys(data) == 'client_id'){
+        if (Object.keys(data) == 'CLIENT_ID'){
             let clientID = Object.values(data)
             const soundboard_endpoint = `http://192.168.1.66:8080/soundboard/${clientID}`
             client_id.innerText = `${soundboard_endpoint}`
@@ -62,7 +66,7 @@ function startWebsocketConnection(){
         }
 
         // If a stop command is received, stop all sounds
-        if (Object.keys(data) == 'STOP'){
+        if (Object.values(data) == 'stop'){
             for ( i=0; i < audioList.length; i++){
                 audioList[i].pause()
             }
@@ -103,16 +107,18 @@ document.addEventListener("DOMContentLoaded", () =>{
         let email = document.getElementById('email').value;
         let password = document.getElementById('password').value
         let confirm_password = document.getElementById('confirm-password').value
+        // Text fields to JSON
         if (password === confirm_password){
             let json = {
                 email: email,
                 password: password
             }
+            // Response from server
             let xhr = new XMLHttpRequest();
             xhr.open("POST", `${register_endpoint}`)
             xhr.onload = () => {
                 response_object = JSON.parse(xhr.response)
-                if(response_object.status == 409)
+                if(response_object.status == 400)
                     setFormMessage(createAccountForm, "error", "Email already registered!");
                 if(response_object.status == 201)
                     setFormMessage(createAccountForm, "success", "Successfully registered!");
@@ -128,7 +134,7 @@ document.addEventListener("DOMContentLoaded", () =>{
     const login_endpoint = 'http://192.168.1.66:8080/login'
     loginForm.addEventListener("submit", e =>{
         e.preventDefault();
-        // Perform login
+        // Text fields to JSON
         let email = document.getElementById('login-email').value;
         let password = document.getElementById('login-password').value
         let json = {
@@ -138,14 +144,14 @@ document.addEventListener("DOMContentLoaded", () =>{
         if (email.length < 4 || password.length < 4){
             setFormMessage(loginForm, "error", "Invalid Username/Password length");
         } else{
+            // Response from server
             let xhr = new XMLHttpRequest();
             xhr.open("POST", `${login_endpoint}`)
             xhr.onload = () => {
-                response_object = JSON.parse(xhr.response)
-                if(response_object.status == 409){
+                if(xhr.status == 400){
                     setFormMessage(loginForm, "error", "Bad Username/Password combo");
                 }
-                if(response_object.status == 200){
+                if(xhr.status == 200){
                     setFormMessage(loginForm, "success", "Logging in....");
                     loginForm.classList.add("form--hidden");
                     websocketContainer.classList.remove("form--hidden");

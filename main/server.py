@@ -3,7 +3,6 @@ from fastapi import (
     Request,
     HTTPException,
     WebSocket,
-    Response,
     status,
     WebSocketDisconnect,
 )
@@ -14,11 +13,10 @@ import random
 import asyncio
 import uvicorn
 from mongoengine import connect, DoesNotExist
-from main.Models import Client, Users, NewUser
-from typing import List, NoReturn, Dict, Optional
+from main.Models import ClientORM, UsersORM, NewUser
+from typing import List, NoReturn, Dict
 from fastapi.responses import JSONResponse
 from passlib.hash import pbkdf2_sha256
-import logging
 from main.ConnectionManager import ConnectionManager
 import pytest
 
@@ -36,60 +34,64 @@ sock_client_dict = {}
 
 
 # Mongo connection
-db = connect(db="StreamHelper", host="localhost", port=27017)
+db = connect(db="StreamHelper", host="localhost", port=27017, uuidRepresentation='standard')
 # If running for the first time, this dummy object will create the DB
 debug_hash_password = pbkdf2_sha256.hash("dummydoc")
-Users(email="dummydoc", password=debug_hash_password).save()
+UsersORM(email="dummydoc", password=debug_hash_password).save()
+__global_ids = []
 
 
-# Debug variable for development
-debugger = True
+def generate_id() -> str:
+    global __global_ids
+    while True:
+        max_length = 10
+        digits = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_+"
+        generated_id = "".join(random.choice(digits) for _ in range(max_length))
+        if generated_id in __global_ids:
+            pass
+        else:
+            __global_ids.append(generated_id)
+            return generated_id
 
 
-def generate_id(
-    digits="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_+",
-    max_length=10) -> str:
-    return "".join(random.choice(digits) for _ in range(max_length))
-
-
-def on_client_connection(id: str) -> Client or None:
-    Client(client_id=id, client_sounds=[]).save()
-
-
-def on_client_close(id: str) -> DoesNotExist or None:
+def on_client_connection(new_client_id: str) -> JSONResponse:
     try:
-        client_in_db = Client.objects.get(client_id=id)
+        ClientORM.objects.get(client_id=new_client_id)
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST)
     except DoesNotExist:
-        return DoesNotExist
-    if client_in_db.client_id:
-        print(client_in_db.client_id)
-        client_in_db.delete()
-        return None
+        ClientORM(client_id=new_client_id, client_sounds=[]).save()
+        return JSONResponse(status_code=status.HTTP_200_OK)
 
 
-def on_client_sound_files(client_id: str, sound_files: List) -> None or DoesNotExist:
+def on_client_close(close_id: str) -> JSONResponse:
+    try:
+        ClientORM.objects.get(client_id=close_id).delete()
+    except DoesNotExist:
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST)
+    return JSONResponse(status_code=status.HTTP_200_OK)
+
+
+def get_client_sound_files(client_id: str, sound_files: List) -> JSONResponse:
     """
     Upon client application websocket connection, generate which sound files are present in their sound_file directory
     :param client_id:
     :param sound_files:
     """
     try:
-        Client.objects.get(client_id=client_id)
+        ClientORM.objects.get(client_id=client_id)
     except DoesNotExist:
-        return DoesNotExist
-    _client = Client.objects.get(client_id=client_id)
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST)
+    _client = ClientORM.objects.get(client_id=client_id)
     _client.update(client_sounds=sound_files)
+    return JSONResponse(status_code=status.HTTP_200_OK)
 
 
-if debugger:
-    logging.warning("DEBUG MODE")
-
-    @app.get("/get_clients")
-    async def get_clients() -> Dict:
-        client_list = []
-        for active_client in Client.objects:
-            client_list.append(active_client.client_id)
-        return {"Clients": client_list}
+@app.get("/get_clients")
+async def get_clients() -> Dict:
+    client_list = []
+    for active_client in ClientORM.objects:
+        client_list.append(active_client.client_id)
+    return {"Clients": client_list}
 
 
 @app.get("/favicon.ico")
@@ -98,8 +100,8 @@ async def favicon() -> NoReturn:
 
 
 @app.get("/soundboard/{client_id}", response_class=HTMLResponse)
-async def client(request: Request, client_id: str) -> templates.TemplateResponse:
-    _client = Client.objects.get(client_id=client_id)
+async def html_client(request: Request, client_id: str) -> templates.TemplateResponse:
+    _client = ClientORM.objects.get(client_id=client_id)
     sound_files = []
     for item in _client.client_sounds:
         sound_files.append(item)
@@ -109,51 +111,51 @@ async def client(request: Request, client_id: str) -> templates.TemplateResponse
 
 
 @app.post("/sign_up")
-async def sign_up(new_user: NewUser, response: Response) -> JSONResponse:
-    for user in Users.objects:
-        if new_user.email == user.email:
-            response.status_code = status.HTTP_409_CONFLICT
-            return JSONResponse(content={"status": response.status_code})
+async def sign_up(new_user: NewUser) -> JSONResponse:
+    if UsersORM.objects(email=new_user.email):
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST)
     hash_password = pbkdf2_sha256.hash(new_user.password)
-    Users(email=new_user.email, password=hash_password).save()
-    response.status_code = status.HTTP_201_CREATED
-    return JSONResponse(content={"status": response.status_code})
+    UsersORM(email=new_user.email, password=hash_password).save()
+    return JSONResponse(status_code=status.HTTP_201_CREATED)
 
 
 @app.post("/login")
-async def sign_up(new_user: NewUser, response: Response) -> JSONResponse:
-    for user in Users.objects:
-        if user.email == new_user.email:
-            non_hashed_password = pbkdf2_sha256.verify(new_user.password, user.password)
-            if non_hashed_password:
-                response.status_code = status.HTTP_200_OK
-                break
-            else:
-                response.status_code = status.HTTP_409_CONFLICT
-                break
-        else:
-            response.status_code = status.HTTP_409_CONFLICT
-    return JSONResponse(content={"status": response.status_code})
+async def sign_up(user_to_login: NewUser) -> JSONResponse:
+    existing_user = UsersORM.objects(email=user_to_login.email).first()
+    if existing_user:
+        non_hashed_password = pbkdf2_sha256.verify(user_to_login.password, existing_user.password)
+        if non_hashed_password:
+            return JSONResponse(status_code=status.HTTP_200_OK)
+    return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST)
+
+
+@app.post("/remove_user")
+async def remove_user(requested_to_delete: NewUser) -> JSONResponse:
+    found_user = UsersORM.objects(email=requested_to_delete.email)
+    if found_user:
+        found_user.delete()
+        return JSONResponse(status_code=status.HTTP_200_OK)
+    return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST)
 
 
 @app.websocket("/")
-async def client_sock(sock: WebSocket) -> Optional[any]:
+async def client_sock(sock: WebSocket):
     await manager.connect(sock)
     client_id = generate_id()
     sock_client_dict[sock] = client_id
     async with client_sock_lock:
         clients[client_id] = sock
+    await sock.send_json({"REQUEST": "accepted"})
     try:
         while True:
             try:
                 data = await sock.receive_json()
-                if debugger:
-                    logging.warning(data)
 
                 # WEB BROWSER SOUNDBOARD COMMUNICATION
-                if "client_id" in data.keys():
+                client_request = data.keys()
+                if "client_id" in client_request:
                     browser_id = data["client_id"]
-                    if "sound" in data.keys():
+                    if "sound" in client_request:
                         sound = data["sound"]
                         if browser_id in clients:
                             electron_sock = clients[browser_id]
@@ -163,21 +165,20 @@ async def client_sock(sock: WebSocket) -> Optional[any]:
                                 await electron_sock.send_json({"SOUND": sound})
 
                 # ELECTRON CLIENT COMMUNICATION
-                client_request = data.keys()
                 if "CONNECT" in client_request:
                     on_client_connection(client_id)
-                    await sock.send_json({"client_id": client_id})
+                    await sock.send_json({"CLIENT_ID": client_id})
                 if "CLOSE" in client_request:
                     on_client_close(client_id)
+                    await sock.send_json({"STATUS": 200, "ACTION": "web socket closed"})
                     await manager.disconnect_user(sock)
-                if "SOUNDFILES" in client_request:
-                    sound_files = data["SOUNDFILES"]
-                    on_client_sound_files(client_id, sound_files)
-                    await sock.send_json({"SOUNDFILES": "200"})
+                if "SOUND_FILES" in client_request:
+                    sound_files = data["SOUND_FILES"]
+                    get_client_sound_files(client_id, sound_files)
+                    await sock.send_json({"STATUS": 200, "ACTION": "sound files received"})
 
             except WebSocketDisconnect:
-                pop_id = sock_client_dict[sock]
-                Client.objects(client_id=pop_id).delete()
+                ClientORM.objects(client_id=sock_client_dict[sock]).delete()
                 await manager.disconnect_user(sock)
                 break
     finally:

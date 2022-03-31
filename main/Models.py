@@ -2,12 +2,12 @@ from mongoengine import Document, StringField, ListField
 from pydantic import BaseModel
 
 
-class Client(Document):
+class ClientORM(Document):
     client_id = StringField()
     client_sounds = ListField()
 
 
-class Users(Document):
+class UsersORM(Document):
     email = StringField()
     password = StringField()
 

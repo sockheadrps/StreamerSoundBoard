@@ -141,13 +141,13 @@ p{
 
 .ws-msg{
     word-wrap: break-word;
-    max-height: 18px;
     max-width: 60%;
     position: relative;
     padding: 13px 20px;
     border-radius: 8px;
     background: #c0bcc0;
     align-self: end;
+    white-space:pre-wrap;
 
 }
 
@@ -159,6 +159,7 @@ p{
     border-radius: 8px;
     background: #eae5ea;
     align-self: start;
+    white-space:pre-wrap;
 }
 
 .scroll_enabled::-webkit-scrollbar {
