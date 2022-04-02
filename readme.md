@@ -2,9 +2,10 @@
 ## _A free Soundboard Tool for Streaming_
 
 
-##_Currently working on a new C# client!
+## _New C# Client- Currently in progress
 -Sneak peak
-![alt text]([![Image from Gyazo](https://i.gyazo.com/6a48f5687c5f496cc759827e949aaa8d.gif)](https://gyazo.com/6a48f5687c5f496cc759827e949aaa8d))
+![Alt text]([![Image from Gyazo](https://i.gyazo.com/6a48f5687c5f496cc759827e949aaa8d.gif)](https://gyazo.com/6a48f5687c5f496cc759827e949aaa8d))
+Current Client
 ![Alt text](websocket.gif)
 
 An Async tool built with FastAPI, MongoDB and ElectronJS.
