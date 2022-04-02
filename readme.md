@@ -1,6 +1,10 @@
 # Streamer Sound Board
 ## _A free Soundboard Tool for Streaming_
 
+
+##_Currently working on a new C# client!
+-Sneak peak
+![alt text]([![Image from Gyazo](https://i.gyazo.com/bd2bb197e030e0a0483cab04d24be6b2.gif)](https://gyazo.com/bd2bb197e030e0a0483cab04d24be6b2))
 ![Alt text](websocket.gif)
 
 An Async tool built with FastAPI, MongoDB and ElectronJS.
