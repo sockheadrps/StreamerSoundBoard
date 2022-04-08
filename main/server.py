@@ -13,11 +13,12 @@ import random
 import asyncio
 import uvicorn
 from mongoengine import connect, DoesNotExist
-from main.Models import ClientORM, UsersORM, NewUser
+from main.Models import ClientORM, UsersORM, UserModel
 from typing import List, NoReturn, Dict
 from fastapi.responses import JSONResponse
 from passlib.hash import pbkdf2_sha256
 from main.ConnectionManager import ConnectionManager
+import uuid
 import pytest
 
 
@@ -38,20 +39,10 @@ db = connect(db="StreamHelper", host="localhost", port=27017, uuidRepresentation
 # If running for the first time, this dummy object will create the DB
 debug_hash_password = pbkdf2_sha256.hash("dummydoc")
 UsersORM(email="dummydoc", password=debug_hash_password).save()
-__global_ids = []
 
 
 def generate_id() -> str:
-    global __global_ids
-    while True:
-        max_length = 10
-        digits = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_+"
-        generated_id = "".join(random.choice(digits) for _ in range(max_length))
-        if generated_id in __global_ids:
-            pass
-        else:
-            __global_ids.append(generated_id)
-            return generated_id
+    return str(uuid.uuid4())
 
 
 def on_client_connection(new_client_id: str) -> JSONResponse:
@@ -73,7 +64,7 @@ def on_client_close(close_id: str) -> JSONResponse:
 
 def get_client_sound_files(client_id: str, sound_files: List) -> JSONResponse:
     """
-    Upon client application websocket connection, generate which sound files are present in their sound_file directory
+    Upon client application websocket connection, generate which sound files are present in local sound_file directory
     :param client_id:
     :param sound_files:
     """
@@ -95,7 +86,7 @@ async def get_clients() -> Dict:
 
 
 @app.get("/favicon.ico")
-async def favicon() -> NoReturn:
+async def favicon() -> None:
     raise HTTPException(status_code=403, detail="No favicon")
 
 
@@ -111,7 +102,7 @@ async def html_client(request: Request, client_id: str) -> templates.TemplateRes
 
 
 @app.post("/sign_up")
-async def sign_up(new_user: NewUser) -> JSONResponse:
+async def sign_up(new_user: UserModel) -> JSONResponse:
     if UsersORM.objects(email=new_user.email):
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST)
     hash_password = pbkdf2_sha256.hash(new_user.password)
@@ -120,7 +111,7 @@ async def sign_up(new_user: NewUser) -> JSONResponse:
 
 
 @app.post("/login")
-async def sign_up(user_to_login: NewUser) -> JSONResponse:
+async def sign_up(user_to_login: UserModel) -> JSONResponse:
     existing_user = UsersORM.objects(email=user_to_login.email).first()
     if existing_user:
         non_hashed_password = pbkdf2_sha256.verify(user_to_login.password, existing_user.password)
@@ -130,7 +121,7 @@ async def sign_up(user_to_login: NewUser) -> JSONResponse:
 
 
 @app.post("/remove_user")
-async def remove_user(requested_to_delete: NewUser) -> JSONResponse:
+async def remove_user(requested_to_delete: UserModel) -> JSONResponse:
     found_user = UsersORM.objects(email=requested_to_delete.email)
     if found_user:
         found_user.delete()
@@ -155,13 +146,16 @@ async def client_sock(sock: WebSocket):
                 client_request = data.keys()
                 if "client_id" in client_request:
                     browser_id = data["client_id"]
+                    # If data{'sound'] browser is either requesting to play a sound, or stop currently playing sounds
                     if "sound" in client_request:
                         sound = data["sound"]
+                        # Matching the browser ID to the client ID, to send the correct application client the request
                         if browser_id in clients:
                             electron_sock = clients[browser_id]
                             if sound == "STOP":
-                                await electron_sock.send_json({"STOP": "STOP"})
+                                await electron_sock.send_json({"STOP": "stop"})
                             else:
+                                # Play the requested sound
                                 await electron_sock.send_json({"SOUND": sound})
 
                 # ELECTRON CLIENT COMMUNICATION
@@ -172,6 +166,7 @@ async def client_sock(sock: WebSocket):
                     on_client_close(client_id)
                     await sock.send_json({"STATUS": 200, "ACTION": "web socket closed"})
                     await manager.disconnect_user(sock)
+                # Application sending the server what sound files are present in local sound_files directory
                 if "SOUND_FILES" in client_request:
                     sound_files = data["SOUND_FILES"]
                     get_client_sound_files(client_id, sound_files)
