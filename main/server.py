@@ -5,16 +5,17 @@ from fastapi import (
     WebSocket,
     status,
     WebSocketDisconnect,
+    Depends,
 )
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
-import random
 import asyncio
 import uvicorn
 from mongoengine import connect, DoesNotExist
 from main.Models import ClientORM, UsersORM, UserModel
-from typing import List, NoReturn, Dict
+from auth import AuthHandler
+from typing import List, Dict
 from fastapi.responses import JSONResponse
 from passlib.hash import pbkdf2_sha256
 from main.ConnectionManager import ConnectionManager
@@ -23,6 +24,7 @@ import pytest
 
 
 app = FastAPI()
+auth_handler = AuthHandler()
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -105,18 +107,18 @@ async def html_client(request: Request, client_id: str) -> templates.TemplateRes
 async def sign_up(new_user: UserModel) -> JSONResponse:
     if UsersORM.objects(email=new_user.email):
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST)
-    hash_password = pbkdf2_sha256.hash(new_user.password)
-    UsersORM(email=new_user.email, password=hash_password).save()
+    hashed_password = auth_handler.get_password_hash(password=new_user.password)
+    UsersORM(email=new_user.email, password=hashed_password).save()
     return JSONResponse(status_code=status.HTTP_201_CREATED)
 
 
 @app.post("/login")
 async def sign_up(user_to_login: UserModel) -> JSONResponse:
     existing_user = UsersORM.objects(email=user_to_login.email).first()
-    if existing_user:
-        non_hashed_password = pbkdf2_sha256.verify(user_to_login.password, existing_user.password)
-        if non_hashed_password:
-            return JSONResponse(status_code=status.HTTP_200_OK)
+    if existing_user and auth_handler.verify_password(user_to_login.password, existing_user.password):
+        token = auth_handler.encode_token(user_to_login.email)
+        json_compatible_response = {"status_code": status.HTTP_200_OK, 'token': token}
+        return JSONResponse(content=json_compatible_response)
     return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST)
 
 
@@ -130,7 +132,7 @@ async def remove_user(requested_to_delete: UserModel) -> JSONResponse:
 
 
 @app.websocket("/")
-async def client_sock(sock: WebSocket):
+async def client_sock(sock: WebSocket, username=Depends(auth_handler.auth_wrapper)):
     await manager.connect(sock)
     client_id = generate_id()
     sock_client_dict[sock] = client_id
@@ -151,14 +153,14 @@ async def client_sock(sock: WebSocket):
                         sound = data["sound"]
                         # Matching the browser ID to the client ID, to send the correct application client the request
                         if browser_id in clients:
-                            electron_sock = clients[browser_id]
+                            browser_socket = clients[browser_id]
                             if sound == "STOP":
-                                await electron_sock.send_json({"STOP": "stop"})
+                                await browser_socket.send_json({"STOP": "stop"})
                             else:
                                 # Play the requested sound
-                                await electron_sock.send_json({"SOUND": sound})
+                                await browser_socket.send_json({"SOUND": sound})
 
-                # ELECTRON CLIENT COMMUNICATION
+                # CLIENT APPLICATION COMMUNICATION
                 if "CONNECT" in client_request:
                     on_client_connection(client_id)
                     await sock.send_json({"CLIENT_ID": client_id})
