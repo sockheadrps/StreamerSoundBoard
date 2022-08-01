@@ -8,7 +8,6 @@ An Async tool built with FastAPI, MongoDB and ElectronJS.
 - Ability to create Users, handle multiple users at once
 - Hashed Passwords
 - Soundboard can be controlled by multiple clients from multiple devices
-- Lightweight
 - Auto detect mp3 soundfiles by dropping them in the ElectronClient/sound_files directory
 - A handy websocket console for development, and seeing when Websocket events happen!
 
