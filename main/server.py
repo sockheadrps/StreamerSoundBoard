@@ -113,7 +113,7 @@ async def sign_up(new_user: UserModel) -> JSONResponse:
 
 
 @app.post("/login")
-async def sign_up(user_to_login: UserModel) -> JSONResponse:
+async def login(user_to_login: UserModel) -> JSONResponse:
     existing_user = UsersORM.objects(email=user_to_login.email).first()
     if existing_user and auth_handler.verify_password(user_to_login.password, existing_user.password):
         token = auth_handler.encode_token(user_to_login.email)
