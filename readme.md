@@ -1,5 +1,6 @@
 # Streamer Sound Board
 ## _A free Soundboard Tool for Streaming_
+![Alt text](websocket.gif)
 
 An Async tool built with FastAPI, MongoDB and ElectronJS. This allows you to run the server on the streaming machine, and have a soundboard on a tablet or phone on the same LAN.
 
